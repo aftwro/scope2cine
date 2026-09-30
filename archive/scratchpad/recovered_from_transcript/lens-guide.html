@@ -1,0 +1,250 @@
+<title>Glass for the IMX307</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #eef1f0;
+    --panel: #e3e8e6;
+    --ink: #1b2124;
+    --muted: #5a666a;
+    --rule: #c9d1ce;
+    --accent: #7a3e9d;      /* violet of a coated front element */
+    --accent-2: #2f7d6b;    /* the green coating reflection */
+    --warn: #a4580f;
+    --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+    --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #121517; --panel: #1a1f22; --ink: #e3e8ea; --muted: #94a1a6;
+      --rule: #2b3236; --accent: #c690e6; --accent-2: #5fc2a8; --warn: #e3a25a;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #121517; --panel: #1a1f22; --ink: #e3e8ea; --muted: #94a1a6;
+    --rule: #2b3236; --accent: #c690e6; --accent-2: #5fc2a8; --warn: #e3a25a;
+  }
+
+  body { background: var(--ground); color: var(--ink); font: 17px/1.62 var(--body); }
+  .page { max-width: 760px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 72px; }
+
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 24px; margin-bottom: 8px; }
+  .eyebrow { font: 600 13px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  h1 { font: 700 clamp(40px, 8vw, 64px)/0.95 var(--display); letter-spacing: -.01em; margin: 10px 0 14px; text-wrap: balance; }
+  .lede { color: var(--muted); max-width: 62ch; margin: 0; }
+  .barrel { font: 500 12px/1.4 var(--mono); color: var(--muted); letter-spacing: .06em; margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .barrel b { color: var(--ink); font-weight: 500; }
+
+  h2 { font: 600 30px/1.05 var(--display); letter-spacing: .01em; margin: 44px 0 10px; text-wrap: balance; }
+  h3 { font: 600 20px/1.2 var(--display); letter-spacing: .03em; margin: 26px 0 4px; }
+  p { margin: 0 0 14px; max-width: 66ch; }
+  ul { padding-left: 1.2em; margin: 0 0 14px; }
+  li { margin-bottom: 6px; max-width: 64ch; }
+  strong { font-weight: 600; }
+  a { color: var(--accent); }
+  code, .num { font-family: var(--mono); font-size: .86em; }
+
+  .note { border-left: 3px solid var(--warn); padding: 2px 0 2px 14px; margin: 18px 0; color: var(--ink); }
+  .note .tag { font: 600 12px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--warn); display: block; margin-bottom: 4px; }
+
+  figure { margin: 22px 0; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; max-width: 62ch; }
+  .formats { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 20px; align-items: center; }
+  @media (max-width: 560px) { .formats { grid-template-columns: 1fr; } }
+  .formats svg { width: 100%; height: auto; max-width: 100%; display: block; }
+  .legend { list-style: none; padding: 0; margin: 0; font: 400 14px/1.35 var(--mono); display: grid; gap: 7px; }
+  .legend li { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; margin: 0; }
+  .sw { width: 16px; height: 10px; border: 2px solid currentColor; }
+  .legend .dim { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .table-wrap { overflow-x: auto; margin: 16px 0 20px; border-top: 1px solid var(--rule); }
+  table { border-collapse: collapse; width: 100%; font: 400 14px/1.4 var(--mono); font-variant-numeric: tabular-nums; }
+  th { font: 600 13px/1.2 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 10px 12px 8px 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  td.r, th.r { text-align: right; }
+  tr.normal td { color: var(--accent-2); font-weight: 500; }
+
+  .families { display: grid; gap: 0; border-top: 1px solid var(--rule); margin-top: 12px; }
+  .fam { display: grid; grid-template-columns: 170px 1fr; gap: 6px 22px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+  @media (max-width: 560px) { .fam { grid-template-columns: 1fr; } }
+  .fam h3 { margin: 0; font-size: 21px; }
+  .fam .mount { font: 500 12px/1.3 var(--mono); color: var(--accent); letter-spacing: .04em; margin-top: 4px; }
+  .fam p { margin: 0 0 6px; }
+  .fam .glass { font: 400 13.5px/1.5 var(--mono); color: var(--muted); }
+
+  .picks { counter-reset: pick; list-style: none; padding: 0; }
+  .picks li { counter-increment: pick; display: grid; grid-template-columns: 34px 1fr; gap: 12px; margin-bottom: 14px; max-width: none; }
+  .picks li::before { content: counter(pick); font: 700 28px/1 var(--display); color: var(--accent); }
+
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">Lens guide · IMX307 camera build</div>
+    <h1>Glass for the IMX307</h1>
+    <p class="lede">What fits the camera's 1/2.8-inch sensor, what it will look like, and how to mount it. The short version: this sensor is almost exactly the size of a Super 8 frame, so the lenses made for 8 mm and 16 mm cine cameras are its natural partners.</p>
+    <div class="barrel">
+      <span><b>5.57 × 3.13 mm</b> recorded area</span>
+      <span><b>6.39 mm</b> diagonal</span>
+      <span><b>×6.8</b> crop vs full frame</span>
+      <span><b>2.9 µm</b> pixels</span>
+    </div>
+  </header>
+
+  <h2>How big the sensor really is</h2>
+  <p>The IMX307 records 1920 × 1080 pixels at 2.9 µm each, which is a 5.57 × 3.13 mm patch of silicon. That is tiny next to a photo sensor, but it sits right in the middle of the small-gauge film formats. Every lens designed to cover one of the larger rectangles below will cover this sensor.</p>
+
+  <figure>
+    <div class="formats">
+      <svg viewBox="0 0 230 170" role="img" aria-label="Film and video formats drawn to scale, centred on each other: 1-inch, Super 16, 16 mm, 2/3-inch, Super 8, the IMX307 1080p area, and Standard 8.">
+        <g fill="none" stroke-width="1.6" transform="translate(115 85)">
+          <rect x="-102.4" y="-76.8" width="204.8" height="153.6" stroke="var(--muted)" stroke-dasharray="4 3"/>
+          <rect x="-100.2" y="-59.3" width="200.3" height="118.6" stroke="var(--muted)"/>
+          <rect x="-82.1" y="-59.9" width="164.2" height="119.8" stroke="var(--accent-2)"/>
+          <rect x="-70.4" y="-52.8" width="140.8" height="105.6" stroke="var(--muted)" stroke-dasharray="2 3"/>
+          <rect x="-46.3" y="-32.1" width="92.6" height="64.2" stroke="var(--accent-2)" stroke-dasharray="6 3"/>
+          <rect x="-44.6" y="-25.0" width="89.1" height="50.1" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)" stroke-width="2.4"/>
+          <rect x="-38.4" y="-28.0" width="76.8" height="56.0" stroke="var(--warn)" stroke-dasharray="3 2"/>
+        </g>
+      </svg>
+      <ul class="legend">
+        <li style="color:var(--muted)"><span class="sw" style="border-style:dashed"></span><span>1-inch video</span><span class="dim">16.0</span></li>
+        <li style="color:var(--muted)"><span class="sw"></span><span>Super 16</span><span class="dim">14.5</span></li>
+        <li style="color:var(--accent-2)"><span class="sw"></span><span>16 mm</span><span class="dim">12.7</span></li>
+        <li style="color:var(--muted)"><span class="sw" style="border-style:dotted"></span><span>2/3-inch video</span><span class="dim">11.0</span></li>
+        <li style="color:var(--accent-2)"><span class="sw" style="border-style:dashed"></span><span>Super 8</span><span class="dim">7.0</span></li>
+        <li style="color:var(--accent)"><span class="sw" style="background:color-mix(in srgb, var(--accent) 20%, transparent)"></span><span><strong>IMX307 1080p</strong></span><span class="dim">6.4</span></li>
+        <li style="color:var(--warn)"><span class="sw" style="border-style:dashed"></span><span>Standard 8</span><span class="dim">5.9</span></li>
+      </ul>
+    </div>
+    <figcaption>Formats to scale, centred on one another; numbers are diagonals in millimetres. The sensor fits inside Super 8 and every larger format. Standard 8 is slightly smaller, so some Standard 8 (D-mount) lenses will darken the extreme corners.</figcaption>
+  </figure>
+
+  <div class="note"><span class="tag">Where the character lives</span>A lens's vintage signature (swirl, soft edges, vignetting, glow) mostly lives near the edge of its image circle. On this sensor, a lens made for 16 mm only uses its central half, so it looks cleaner than it did on film. For the most "period" look, choose lenses made for the smallest formats: 8 mm, Super 8 and small CCTV formats, where the sensor uses more of the circle.</div>
+
+  <h2>What each focal length does</h2>
+  <p>Multiply by about 6.8 to get the full-frame equivalent. A "normal" lens for this sensor is roughly its diagonal, about 6.5 mm. That means the classic 16 mm cine focal lengths all act long here: a 25 mm is a telephoto.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Focal length</th><th class="r">Horizontal view</th><th class="r">Full-frame equiv.</th><th>Feels like</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>3.5 mm</td><td class="r">77°</td><td class="r">24 mm</td><td>wide establishing shot</td></tr>
+        <tr><td>4 mm</td><td class="r">70°</td><td class="r">27 mm</td><td>wide</td></tr>
+        <tr class="normal"><td>6 mm</td><td class="r">50°</td><td class="r">41 mm</td><td>normal, natural perspective</td></tr>
+        <tr><td>8 mm</td><td class="r">38°</td><td class="r">54 mm</td><td>slightly long normal</td></tr>
+        <tr><td>10 mm</td><td class="r">31°</td><td class="r">68 mm</td><td>portrait-ish</td></tr>
+        <tr><td>12.5 mm</td><td class="r">25°</td><td class="r">85 mm</td><td>classic portrait</td></tr>
+        <tr><td>16 mm</td><td class="r">20°</td><td class="r">108 mm</td><td>short tele</td></tr>
+        <tr><td>25 mm</td><td class="r">13°</td><td class="r">169 mm</td><td>tele, compressed backgrounds</td></tr>
+        <tr><td>50 mm</td><td class="r">6.4°</td><td class="r">339 mm</td><td>long tele, needs support</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Depth of field:</strong> the small sensor makes backgrounds harder to blur. As a rough guide, multiply the aperture by the same ×6.8 for full-frame-equivalent depth of field: f/1.4 here behaves like about f/9.5 on full frame, and f/0.95 like about f/6.4. Fast lenses still matter, for low light and for blur on close subjects.</p>
+
+  <h2>Mounts and flange distances</h2>
+  <p>The camera currently has a tiny M12 lens holder. Because we build the replacement mount ourselves, we choose the flange distance: the gap between the mount face and the sensor that every lens system assumes.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Mount</th><th>Thread</th><th class="r">Flange</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>C-mount</td><td>1"-32 UN</td><td class="r">17.526 mm</td><td>16 mm cine, CCTV, machine vision, microscope camera ports</td></tr>
+        <tr><td>CS-mount</td><td>1"-32 UN</td><td class="r">12.526 mm</td><td>CCTV; a C lens fits via a 5 mm ring, but a CS lens can't go on C</td></tr>
+        <tr><td>D-mount</td><td>5/8"-32</td><td class="r">12.29 mm</td><td>Standard 8 cine lenses; needs the shortest flange of all</td></tr>
+        <tr><td>M12 (S-mount)</td><td>M12 × 0.5</td><td class="r">not fixed</td><td>board-camera lenses, focus by screwing in; best for ultra-wide and fisheye</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Recommendation:</strong> build the mount with a short flange, at or just under 12.29 mm. Everything else then attaches with a simple spacer:</p>
+  <ul>
+    <li>D-mount lenses screw in directly (or via a thin D thread insert).</li>
+    <li>CS lenses need a small shim (about 0.24 mm).</li>
+    <li>C-mount lenses use a D-to-C ring (about 5.24 mm) or a CS-to-C 5 mm ring.</li>
+  </ul>
+  <div class="note"><span class="tag">Calibrate infinity</span>Glass in front of the sensor (cover glass, IR-cut filter) shifts focus back by roughly a third of its thickness. Plan for a shim set (0.05–0.5 mm) and set the flange by focusing a lens at infinity, instead of trusting the drawing alone.</div>
+
+  <h2>The IR-cut question</h2>
+  <p>The IMX307 is a "starlight" sensor that sees well into near-infrared. The stock M12 lens or holder may carry an IR-cut filter, but cine lenses never do. Without one, colours drift towards magenta, foliage glows, and blacks lift under daylight and tungsten. Put a 650 nm IR-cut filter in the new mount, between lens and sensor, for accurate colour. It can be a small square of filter glass, or a removable one if you want infrared effects on purpose.</p>
+  <div class="note"><span class="tag">To check</span>Whether the board itself already has IR-cut glass over the sensor. Look for a faintly blue- or red-tinted window when the M12 lens is removed. The board has an unpopulated IR-cut switcher driver (GPIO 10/11), which hints that the filter lived in a lens holder.</div>
+
+  <h2>Lens families worth hunting</h2>
+  <div class="families">
+    <div class="fam">
+      <div><h3>Kern-Paillard Switar</h3><div class="mount">C-mount · 16 mm (Bolex)</div></div>
+      <div>
+        <p>Swiss, beautifully made, gentle contrast and warm rendering. Prefer the non-"RX" versions: RX lenses were computed to look through the Bolex reflex prism and are softer wide open on other cameras, especially the shorter focal lengths.</p>
+        <p class="glass">10 mm f/1.6 · 16 mm f/1.8 · 25 mm f/1.4 · 75 mm f/1.9</p>
+      </div>
+    </div>
+    <div class="fam">
+      <div><h3>Angénieux</h3><div class="mount">C-mount · 16 mm</div></div>
+      <div>
+        <p>The classic French cine look, with a glowing highlight bloom wide open. The 25 mm f/0.95 is legendary and priced to match. The 10 mm retrofocus is a friendlier way in.</p>
+        <p class="glass">10 mm f/1.8 · 15 mm f/1.3 · 25 mm f/0.95 · 12–120 mm zoom</p>
+      </div>
+    </div>
+    <div class="fam">
+      <div><h3>Kodak Cine Ektar</h3><div class="mount">C-mount · 16 mm</div></div>
+      <div>
+        <p>Mid-century American glass. Crisp in the centre, with characterful falloff and often very affordable.</p>
+        <p class="glass">15 mm f/2.5 · 25 mm f/1.4</p>
+      </div>
+    </div>
+    <div class="fam">
+      <div><h3>Schneider · Som Berthiot · Cooke</h3><div class="mount">C-mount · 16 mm</div></div>
+      <div>
+        <p>Schneider Cinegon and Xenoplan are clinical and sharp. Som Berthiot Cinor lenses are soft and dreamy. Cooke Kinetal is the premium 16 mm line, with the "Cooke look" and prices to match.</p>
+      </div>
+    </div>
+    <div class="fam">
+      <div><h3>D-mount primes</h3><div class="mount">D-mount · Standard 8</div></div>
+      <div>
+        <p>Made for 8 mm film, so the sensor uses nearly their whole image circle, which gives the most period character per euro. Watch for slight corner shading, since Standard 8 is a little smaller than the sensor. They also cover the wide end that 16 mm lenses can't.</p>
+        <p class="glass">e.g. Switar 5.5 mm f/1.8 · 12.5 mm f/1.3 (Bolex D) · Wollensak, Elgeet, Ektar 8 mm lines</p>
+      </div>
+    </div>
+    <div class="fam">
+      <div><h3>CCTV and machine vision</h3><div class="mount">C / CS-mount · 1/2"–1"</div></div>
+      <div>
+        <p>Fujinon, Computar, Tamron, Kowa and Pentax/Cosmicar. Modern, sharp and cheap, often with f/0.95–f/1.4 speeds and short focal lengths (4–8 mm) that give real wide and normal views on this sensor. The vintage Cosmicar/Pentax TV lenses have a nice 80s video look. The budget "CCTV 25 mm f/1.4" and "35 mm f/1.7" lenses sold for mirrorless cameras mostly lose their famous swirl here, because the swirl lives at the edge.</p>
+      </div>
+    </div>
+    <div class="fam">
+      <div><h3>Microscope ports</h3><div class="mount">C-mount · trinocular</div></div>
+      <div>
+        <p>This board started life as a microscope camera, and C-mount is the standard microscope camera port. A C-mount mount also lets it drop straight onto a trinocular head (0.35×/0.5× relay adapters).</p>
+      </div>
+    </div>
+    <div class="fam">
+      <div><h3>M12 board lenses</h3><div class="mount">M12 · any small format</div></div>
+      <div>
+        <p>The easy route to ultra-wide and fisheye (1.8–3 mm). Pick ones rated for 1/2.7" or larger with a known IR-cut option. They're the least "cinematic", but tiny and cheap.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>A sensible starting kit</h2>
+  <ol class="picks">
+    <li><div><strong>A fast 6–8 mm C/CS CCTV lens</strong> (Computar or Fujinon, f/1.2–1.4). This gives a normal field of view for everyday shooting and proves the mount and flange.</div></li>
+    <li><div><strong>A D-mount 12.5 mm f/1.3 or 5.5 mm f/1.8.</strong> The period look: small-format glass using most of its image circle.</div></li>
+    <li><div><strong>A 10 mm Switar or Angénieux</strong> for 68 mm-equivalent portraits with classic 16 mm rendering.</div></li>
+    <li><div><strong>A 650 nm IR-cut filter and a C-mount shim set.</strong> The unglamorous parts that make the rest look right.</div></li>
+  </ol>
+
+  <h2>Shooting notes for this camera</h2>
+  <ul>
+    <li><strong>Manual iris lenses:</strong> leave the camera in AUTO with SPOT metering and set exposure with the lens's iris ring, watching the on-screen EV meter. Or use manual shutter at 1/50 or 1/48 for motion blur and control exposure with the iris.</li>
+    <li><strong>Focus:</strong> the small sensor gives deep focus, but fast lenses wide open are still critical. Focus peaking is on the camera roadmap, and until then use the HDMI monitor at full size.</li>
+    <li><strong>Heavy glass:</strong> anything like a 12–120 zoom needs a lens support. The thread alone won't hold it against a board-mounted sensor.</li>
+    <li><strong>Dust:</strong> with no mirror box the sensor sits right behind the mount. Cap it whenever a lens is off.</li>
+  </ul>
+
+  <footer>Written 24 Sep 2026 for the IMX307 camera build. Sensor figures are from the IMX307 datasheet class values (2.9 µm pixels, 1920 × 1080 recorded). Format sizes are nominal camera aperture sizes. Lens availability and exact coverage vary by copy; test before committing a shoot to one.</footer>
+</div>

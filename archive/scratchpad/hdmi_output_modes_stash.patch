@@ -1,0 +1,252 @@
+diff --git a/src/camapp/camapp.c b/src/camapp/camapp.c
+index a216195..5043c37 100644
+--- a/src/camapp/camapp.c
++++ b/src/camapp/camapp.c
+@@ -613,6 +613,13 @@ static int apply_fps(void)
+  * while paused changed nothing, resuming jumped +0.66 EV). Not saved: a lock belongs to one scene. */
+ int ae_locked;
+ int osd_hidden;
++const struct hdmi_mode hdmi_modes[N_HDMI_MODES] = {
++    { "1080p60", 16, 9, 1920, 1080 }, { "1080p50", 15, 7, 1920, 1080 }, { "1080p30", 12, 10, 1920, 1080 },
++    { "1080p25", 11, 11, 1920, 1080 }, { "1080p24", 10, 12, 1920, 1080 }, { "720p60", 9, 5, 1280, 720 },
++    { "720p50", 8, 4, 1280, 720 },
++};
++uint32_t out_w = 1920, out_h = 1080;
++int hdmi_mode_run;
+ 
+ /* Exposure mode label: M manual, P program (auto), S shutter priority, G gain priority. */
+ const char *expo_mode_short(void)
+@@ -1102,6 +1109,18 @@ int main(int argc, char **argv)
+     int rc = 1, pipeline_ok = 0;
+ 
+     settings_load(SETTINGS_PATH);                    /* first: the sensor mode (HDR) comes from it */
++    /* HDMI output mode (settings.hdmi_out): the display port gets the picture already scaled to the
++     * output size by SCL port 0, the layer and input port match it; the OSD framebuffer's stretch
++     * follows the display timing. */
++    hdmi_mode_run = settings.hdmi_out < N_HDMI_MODES ? (int)settings.hdmi_out : 0;
++    const struct hdmi_mode *hm = &hdmi_modes[hdmi_mode_run];
++    out_w = hm->w, out_h = hm->h;
++    disp_pub[2] = hm->disp;
++    hdmi_attr[2] = hm->hdmi;
++    layer_attr[1] = out_w | out_h << 16, layer_attr[2] = out_w, layer_attr[3] = out_h;
++    port_attr[1] = port_attr[2] = out_w | out_h << 16;
++    scl_port0[2] = out_w | out_h << 16;
++    printf("hdmi: output %s (%ux%u, disp timing %u, hdmi timing %u)\n", hm->name, out_w, out_h, hm->disp, hm->hdmi);
+     dng_fbc_off();                                   /* before VIF: real raw for DNG photos */
+     DO(MI_SYS_Init(0));                              UNDO(u_sys);
+     DO(MI_SNR_InitDev(NULL));                        UNDO(u_snr_init);
+diff --git a/src/camapp/camapp.h b/src/camapp/camapp.h
+index 22da3ac..77597fa 100644
+--- a/src/camapp/camapp.h
++++ b/src/camapp/camapp.h
+@@ -105,6 +105,13 @@ void tally_update(void);              /* recording tally frame follows rec_on */
+ #define NOTICE_SECS 2
+ void notice_for(const char *text, uint32_t colour, int secs);   /* one-line OSD notice for secs */
+ extern int osd_hidden;
++/* HDMI output modes: display timing enum and HDMI timing id from cardv's astTimingArray (the HDMI
++ * transmitter has a fixed list; no custom timings, so no 1080p100). */
++struct hdmi_mode { const char *name; uint32_t disp, hdmi, w, h; };
++#define N_HDMI_MODES 7
++extern const struct hdmi_mode hdmi_modes[N_HDMI_MODES];
++extern uint32_t out_w, out_h;          /* HDMI output size of this run (display, loupe) */
++extern int hdmi_mode_run;               /* hdmi_modes index this run started with */
+ extern volatile int view_request;      /* scopes.c: viewgrab pending */                 /* OSD layer hidden (body MENU double click, FIFO osd_toggle) */
+ int rgn_test(int on);                  /* rgn.c: step R2 red box in the USB picture */
+ void dng_fbc_off(void);                /* dng.c: VIF output uncompressed (before pipeline start) */
+diff --git a/src/camapp/cmd.c b/src/camapp/cmd.c
+index c7b5a72..3af81e2 100644
+--- a/src/camapp/cmd.c
++++ b/src/camapp/cmd.c
+@@ -90,6 +90,33 @@ void handle_cmd(char *line)
+         printf("dp: mode %lu slope %lu: set %d\n", val, arg2, have ? MI_ISP_IQ_SetDynamicDP(0, 0, d) : -1);
+         return;
+     }
++    if (!strcmp(cmd, "hdmiout") && n == 2) {   /* hdmiout N: HDMI output mode (hdmi_modes index), restarts */
++        if (val < N_HDMI_MODES && !rec_on) {
++            settings.hdmi_out = val;
++            settings_changed();
++            restart_requested = stop_requested = 1;
++        }
++        printf("hdmiout: %s\n", val < N_HDMI_MODES ? hdmi_modes[val].name : "invalid");
++        return;
++    }
++    if (!strcmp(cmd, "edid")) {       /* debug: raw MI_HDMI_ForceGetEdid + GetSinkInfo, EDID to /tmp/edid.bin */
++        static uint8_t e[1024], si[1024];
++        memset(e, 0, sizeof(e));
++        memset(si, 0, sizeof(si));
++        int r = MI_HDMI_ForceGetEdid(0, e), r2 = MI_HDMI_GetSinkInfo(0, si);
++        printf("edid: ForceGetEdid %d, head:", r);
++        for (int i = 0; i < 24; i++) printf(" %02x", e[i]);
++        printf("\nedid: GetSinkInfo %d, head:", r2);
++        for (int i = 0; i < 32; i++) printf(" %02x", si[i]);
++        printf("\n");
++        FILE *f = fopen("/tmp/edid.bin", "wb");
++        if (f) {
++            fwrite(e, 1, sizeof(e), f);
++            fwrite(si, 1, sizeof(si), f);
++            fclose(f);
++        }
++        return;
++    }
+     if (!strcmp(cmd, "dpdump")) {     /* debug: MI_ISP_IQ_GetDynamicDP (0x2f4 = 8 + 17 x 44 bytes) */
+         static uint8_t d[0x2f4];
+         int r = MI_ISP_IQ_GetDynamicDP(0, 0, d);
+diff --git a/src/camapp/menu.c b/src/camapp/menu.c
+index 1dc0e06..9d1ea0b 100644
+--- a/src/camapp/menu.c
++++ b/src/camapp/menu.c
+@@ -19,7 +19,7 @@
+ enum { MI_MODE, MI_FRAMERATE, MI_CROP_W, MI_CROP_H, MI_TL_INTERVAL, MI_TL_LIMIT, MI_PLAY_FPS, MI_REC_FPS, MI_REC_CODEC, MI_REC_MBPS, MI_PHOTO_RAW, MI_EXPOSURE, MI_SHUTTER_BY, MI_SHUTTER, MI_GAIN, MI_EVCOMP, MI_AE_LOCK, MI_AE_SPEED, MI_AE_FLICKER, MI_AE_MAXSH, MI_AE_MAXGAIN, MI_METERING, MI_SPOT_SIZE, MI_WB, MI_WB_K, MI_WB_R, MI_WB_G, MI_WB_B, MI_WB_GRAB, MI_LOUPE, MI_PEAKING, MI_PEAK_COLOUR, MI_ZEBRA, MI_FALSECOL, MI_WAVEFORM, MI_GUIDES, MI_FRAME, MI_HISTOGRAM,
+        MI_MIRROR, MI_FLIP, MI_EXPERT, MI_SYSTEM, MI_SEC_REC, MI_SEC_EXPO, MI_SEC_COLOUR, MI_SEC_ASSIST, XI_BACK,
+        /* System page */
+-       SI_SD, SI_FORMAT, SI_BUILD, SI_UPTIME, SI_CPU, SI_RAM, SI_FLASH, SI_TC, SI_LOGS, SI_RESET, SI_BACK,
++       SI_HDMI, SI_SD, SI_FORMAT, SI_BUILD, SI_UPTIME, SI_CPU, SI_RAM, SI_FLASH, SI_TC, SI_LOGS, SI_RESET, SI_BACK,
+        /* Expert > Sensor page (read-only live hardware values) */
+        EI_NR3D, EI_WDR, EI_FPS, EI_VMAX, EI_HMAX, EI_SHS, EI_GAIN, EI_TEMP, EI_REGS, EI_ISP, EI_ENC, EI_BACK,
+        /* Expert > Registers page (read-only IMX307 register viewer) */
+@@ -36,7 +36,7 @@ enum { MI_MODE, MI_FRAMERATE, MI_CROP_W, MI_CROP_H, MI_TL_INTERVAL, MI_TL_LIMIT,
+        GI_JPEGQ, GI_GOP, GI_RC, GI_QPMAX, GI_QPMIN, GI_BACK, MI_ALL };
+ static const char *const menu_labels_all[MI_ALL] = {
+     "Mode", "Frame rate", "Crop width", "Crop height", "Interval", "Stop after", "Plays at", "Record fps", "Codec", "Bitrate", "Photo", "Auto/Manual", "Shutter by", "Shutter", "Gain", "EV comp", "AE lock", "AE speed", "Anti-flicker", "Max shutter", "Max gain", "Metering", "Spot size", "White bal.", "Kelvin", "Red gain", "Green gain", "Blue gain", "Set from scene", "Magnify", "Peaking", "Peak colour", "Zebra", "False colour", "Waveform", "Guides", "Frame", "Histogram", "Mirror", "Flip",
+-    "Expert", "System", "Recording", "Exposure", "Colour", "Assist", "Back", "SD card", "Format SD", "Build", "Uptime", "CPU", "RAM", "Flash", "Timecode", "Save logs", "Reset settings", "Back",
++    "Expert", "System", "Recording", "Exposure", "Colour", "Assist", "Back", "HDMI output", "SD card", "Format SD", "Build", "Uptime", "CPU", "RAM", "Flash", "Timecode", "Save logs", "Reset settings", "Back",
+     "Temporal NR", "WDR", "Real fps", "Frame length", "Line length", "Exposure", "Sensor gain", "SoC temp", "Registers", "Image & looks", "Encoder", "Back",
+     "Address", "", "", "", "", "", "", "", "", "Write access", "Undo writes", "Back",
+     "Look slot", "Load look", "Save look", "Export looks", "Import looks", "Brightness", "Contrast", "Lightness", "Gamma", "Sharpness", "Saturation", "Colour matrix", "Black level", "Black & white", "Matrix edit", "Hue tweaks", "Noise & clean-up", "Reset page", "Back",
+@@ -68,7 +68,7 @@ static const int rows_expo[] = { MI_EXPOSURE, MI_SHUTTER_BY, MI_SHUTTER, MI_GAIN
+ static const int rows_colour[] = { MI_WB, MI_WB_K, MI_WB_R, MI_WB_G, MI_WB_B, MI_WB_GRAB, EI_ISP, XI_BACK, -1 };
+ static const int rows_assist[] = { MI_LOUPE, MI_PEAKING, MI_PEAK_COLOUR, MI_ZEBRA, MI_FALSECOL, MI_WAVEFORM, MI_HISTOGRAM,
+                                    MI_GUIDES, MI_FRAME, XI_BACK, -1 };
+-static const int rows_system[] = { MI_MIRROR, MI_FLIP, SI_SD, SI_FORMAT, SI_BUILD, SI_UPTIME, SI_CPU, SI_RAM, SI_FLASH, SI_TC, SI_LOGS, SI_RESET, SI_BACK, -1 };
++static const int rows_system[] = { MI_MIRROR, MI_FLIP, SI_HDMI, SI_SD, SI_FORMAT, SI_BUILD, SI_UPTIME, SI_CPU, SI_RAM, SI_FLASH, SI_TC, SI_LOGS, SI_RESET, SI_BACK, -1 };
+ static const int rows_expert[] = { EI_NR3D, EI_WDR, EI_FPS, EI_VMAX, EI_HMAX, EI_SHS, EI_GAIN, EI_TEMP, EI_REGS, EI_ENC,
+                                    EI_BACK, -1 };
+ /* Register viewer: 8 registers from reg_base. IMX307 registers live at 0x3000-0x34FF. */
+@@ -449,6 +449,12 @@ void menu_draw(void)
+                 snprintf(b, 32, "%.1f MB free", (double)sv.f_bavail * sv.f_frsize / (1024 * 1024));
+             break;
+         }
++        case SI_HDMI:
++            if ((int)settings.hdmi_out != hdmi_mode_run)
++                snprintf(b, 32, "%s: %s", hdmi_modes[settings.hdmi_out % N_HDMI_MODES].name, rec_on ? "stop rec" : "Play = go");
++            else
++                snprintf(b, 32, "%s", hdmi_modes[hdmi_mode_run].name);
++            break;
+         case SI_UPTIME: {
+             double up = 0;
+             FILE *f = fopen("/proc/uptime", "r");
+@@ -719,6 +725,8 @@ void menu_draw(void)
+         help = "Edit the 9 colour matrix numbers yourself (ISP manual matrix).";
+     else if (sel_id == SI_CPU || sel_id == SI_RAM || sel_id == SI_FLASH)
+         help = "Live system status. CPU: both cores busy over the last second. RAM: Linux memory available of total, and what camapp itself uses (video buffers live in a separate ~170 MB area). Flash: free space where camapp and settings live.";
++    else if (sel_id == SI_HDMI)
++        help = "HDMI output mode: 1080p 60/50/30/25/24 or 720p 60/50. The picture is scaled straight to the output size, the OSD follows. Left/right pick, OK/Play applies (restart). Your monitor must support the mode; 100 Hz is not possible (the HDMI chip has a fixed mode list).";
+     else if (sel_id == SI_LOGS)
+         help = "OK: copy the camapp log (recording drops, errors, settings) and the kernel log (dmesg) to LOGS/ on the SD card, numbered LOG_nnnn_camapp.txt / _dmesg.txt.";
+     else if (sel_id == CI_MODE)
+@@ -1369,6 +1377,17 @@ static void menu_change(int dir)
+         apply_wb();
+         printf("settings: reset to defaults\n");
+         break;
++    case SI_HDMI:                                   /* arrows pick, OK / play restarts into it */
++        if (menu_ok) {
++            if ((int)settings.hdmi_out != hdmi_mode_run && !rec_on) {
++                printf("menu: HDMI output %s, restarting\n", hdmi_modes[settings.hdmi_out].name);
++                settings_changed();
++                restart_requested = stop_requested = 1;
++            }
++            return;
++        }
++        settings.hdmi_out = (settings.hdmi_out + N_HDMI_MODES + dir) % N_HDMI_MODES;
++        return;
+     case SI_LOGS: {                                 /* camapp log + kernel log to the SD card */
+         char msg[64];
+         int n = save_logs();
+@@ -1652,7 +1671,7 @@ static void menu_change(int dir)
+ static int row_confirms(int id)
+ {
+     switch (id) {
+-    case MI_MODE: case MI_CROP_W: case MI_CROP_H: case MI_WB_GRAB: case SI_FORMAT: case SI_RESET: case SI_TC: case SI_LOGS: case CI_COPY:
++    case MI_MODE: case MI_CROP_W: case MI_CROP_H: case MI_WB_GRAB: case SI_FORMAT: case SI_RESET: case SI_TC: case SI_LOGS: case SI_HDMI: case CI_COPY:
+     case II_LOOK_LOAD: case II_LOOK_SAVE: case II_LOOK_EXPORT: case II_LOOK_IMPORT:
+     case II_RESET: case CI_RESET: case HI_RESET: case NI_RESET:
+         return 1;
+diff --git a/src/camapp/mi.h b/src/camapp/mi.h
+index 107d3cf..18e798b 100644
+--- a/src/camapp/mi.h
++++ b/src/camapp/mi.h
+@@ -55,6 +55,8 @@ int MI_ISP_DestroyChannel(uint32_t dev, uint32_t chn);
+ int MI_ISP_SetChnParam(uint32_t dev, uint32_t chn, void *param);
+ int MI_ISP_IQ_GetDynamicDP(uint32_t dev, uint32_t chn, void *p);
+ int MI_ISP_IQ_SetDynamicDP(uint32_t dev, uint32_t chn, void *p);
++int MI_HDMI_ForceGetEdid(uint32_t hdmi, void *edid);
++int MI_HDMI_GetSinkInfo(uint32_t hdmi, void *info);
+ /* MI_RGN (Mercury6: leading u16 SoC id, see rgn.c) */
+ int MI_RGN_InitDev(uint16_t soc, void *init);
+ int MI_RGN_DeInitDev(uint16_t soc);
+diff --git a/src/camapp/player.c b/src/camapp/player.c
+index 46a4136..fe15e49 100644
+--- a/src/camapp/player.c
++++ b/src/camapp/player.c
+@@ -9,11 +9,14 @@
+ #include <libavcodec/avcodec.h>
+ #include <libavformat/avformat.h>
+ #include <pthread.h>
++#include <stdint.h>
+ #include <stdio.h>
+ #include <string.h>
+ #include <time.h>
+ #include <unistd.h>
+ 
++extern uint32_t out_w, out_h;          /* camapp.c: HDMI output size */
++
+ 
+ static pthread_t tid;
+ static volatile int run, active, paused, at_end, seek_by;
+@@ -30,7 +33,7 @@ static double now_s(void)
+ /* Display port 0 source size (word 2; word 1 is the on-screen size, 1920x1080). */
+ static void set_port_src(int w, int h)
+ {
+-    uint32_t attr[3] = { 0, 0x04380780, (uint32_t)w | (uint32_t)h << 16 };
++    uint32_t attr[3] = { 0, out_w | out_h << 16, (uint32_t)w | (uint32_t)h << 16 };
+     int r1 = MI_DISP_DisableInputPort(0, 0), r2 = MI_DISP_SetInputPortAttr(0, 0, attr), r3 = MI_DISP_EnableInputPort(0, 0);
+     printf("player: display source %dx%d (rc %d/%d/%d)\n", w, h, r1, r2, r3);
+ }
+diff --git a/src/camapp/scopes.c b/src/camapp/scopes.c
+index e75f106..319c481 100644
+--- a/src/camapp/scopes.c
++++ b/src/camapp/scopes.c
+@@ -29,7 +29,7 @@ int apply_loupe(void)
+         x = (loupe_cx - w / 2) & ~1;
+         y = (loupe_cy - h / 2) & ~1;
+     }
+-    uint32_t p0[6] = { loupe_on ? x | y << 16 : 0, w | h << 16, 0x04380780, 0x101, 0xb, 0 };
++    uint32_t p0[6] = { loupe_on ? x | y << 16 : 0, w | h << 16, out_w | out_h << 16, 0x101, 0xb, 0 };
+     int r = MI_SCL_SetOutputPortParam(0, 0, 0, p0);
+     peak_set_crop(loupe_on ? x : 0, loupe_on ? y : 0, w, h);   /* peaking follows the loupe view */
+     printf("loupe: %s %d.%dx crop %u,%u %ux%u, set = %d\n", loupe_on ? "on" : "off", loupe_z10 / 10, loupe_z10 % 10,
+diff --git a/src/camapp/settings.c b/src/camapp/settings.c
+index 5075175..cde3663 100644
+--- a/src/camapp/settings.c
++++ b/src/camapp/settings.c
+@@ -19,7 +19,7 @@ const char *const mode_names[N_MODES] = { "Normal", "HDR", "Slow-mo", "Timelapse
+ void settings_reset(void) { settings = defaults; }
+ 
+ static const struct { const char *key; uint32_t *val; } fields[] = {
+-    { "mirror", &settings.mirror }, { "flip", &settings.flip }, { "manual", &settings.manual }, { "ae_priority", &settings.ae_priority }, { "photo_raw", &settings.photo_raw },
++    { "mirror", &settings.mirror }, { "flip", &settings.flip }, { "manual", &settings.manual }, { "ae_priority", &settings.ae_priority }, { "photo_raw", &settings.photo_raw }, { "hdmi_out", &settings.hdmi_out },
+     { "shutter_us", &settings.shutter_us }, { "sensor_gain", &settings.sensor_gain },
+     { "shutter_angle_x10", &settings.shutter_angle_x10 },
+     { "peaking", &settings.peaking }, { "peak_colour", &settings.peak_colour },
+diff --git a/src/camapp/settings.h b/src/camapp/settings.h
+index c510418..aacd206 100644
+--- a/src/camapp/settings.h
++++ b/src/camapp/settings.h
+@@ -7,6 +7,7 @@
+ struct settings {
+     uint32_t mirror, flip;          /* sensor readout direction */
+     uint32_t manual;                /* 0 = auto exposure, 1 = manual */
++    uint32_t hdmi_out;              /* HDMI output mode, index into hdmi_modes (camapp.c), 0 = 1080p60 */
+     uint32_t photo_raw;             /* photos also as DNG (raw 10-bit Bayer) */
+     uint32_t ae_priority;           /* auto only: 0 P (program), 1 S (shutter fixed), 2 G (gain fixed) */
+     uint32_t shutter_us, sensor_gain;   /* manual exposure (gain: 1024 = 1x) */

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "ghidra": {
+      "command": "/home/aftwr/.local/bin/uvx",
+      "args": ["--python", "3.12", "pyghidra-mcp", "-t", "stdio",
+               "--project-path", "/home/aftwr/microscopeproject/ghidra",
+               "--project-name", "microscope"],
+      "env": {
+        "GHIDRA_INSTALL_DIR": "/home/aftwr/tools/ghidra_12.1.4_PUBLIC",
+        "JAVA_HOME": "/home/aftwr/tools/jdk-21.0.12.1+1"
+      }
+    }
+  }
+}

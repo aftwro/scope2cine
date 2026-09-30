@@ -1,0 +1,15 @@
+#!/bin/sh
+# Installed as /config/cardv. /etc/profile puts /config before /bootconfig/bin in PATH,
+# so demo.sh's "cardv <ini> &" runs this instead of the vendor binary.
+# Delete this file to get the exact stock boot back.
+D=/customer/camapp
+if [ -e $D/enable ] && [ -x $D/boot.sh ]; then
+    n=$(cat $D/boot_attempts 2>/dev/null || echo 0)
+    if [ "$n" -lt 3 ]; then
+        echo $((n + 1)) > $D/boot_attempts
+        sync
+        exec $D/boot.sh "$@"
+    fi
+    echo "camapp: $n boots without reaching healthy state, falling back to stock cardv"
+fi
+exec /bootconfig/bin/cardv "$@"

@@ -1,0 +1,1 @@
+head -c 3000000 /app/bin/sd/REC_0008.ts | od -An -tx1 -w188 -v | awk '$1=="47" && $2=="41" && $3=="00" {if(n) printf "%d ", n*184; n=0} $2=="01"||$2=="41" {n++}' > /tmp/fs.txt; echo DONE >> /tmp/fs.txt

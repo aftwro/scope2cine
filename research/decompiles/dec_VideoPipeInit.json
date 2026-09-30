@@ -1,0 +1,9 @@
+{
+  "name": "CarDV_VideoPipeInit-00032988",
+  "code": "\n/* WARNING: Unknown calling convention -- yet parameter storage is locked */\n/* CarDV_VideoPipeInit() */\n\nint CarDV_VideoPipeInit(void)\n\n{\n  int iVar1;\n  uint uVar2;\n  uint uVar3;\n  \n  iVar1 = MI_SNR_InitDev(0);\n  uVar3 = 0;\n  if (iVar1 != 0) {\n    printf(\"(%s %d)exec func fail, err:%x\\n\",\"CarDV_VideoPipeInit\",0x35,iVar1);\n    return iVar1;\n  }\n  do {\n    uVar2 = uVar3 + 1;\n    iVar1 = CarDV_SensorModuleInit(uVar3);\n    if (iVar1 != 0) {\n      printf(\"(%s %d)exec func fail, err:%x\\n\",\"CarDV_VideoPipeInit\",0x38,iVar1);\n      return iVar1;\n    }\n    uVar3 = uVar2;\n  } while (uVar2 != 4);\n  uVar3 = 0;\n  do {\n    uVar2 = uVar3 + 1;\n    iVar1 = CarDV_VifModuleInit(uVar3);\n    if (iVar1 != 0) {\n      printf(\"(%s %d)exec func fail, err:%x\\n\",\"CarDV_VideoPipeInit\",0x3d,iVar1);\n      return iVar1;\n    }\n    uVar3 = uVar2;\n  } while (uVar2 != 4);\n  iVar1 = CarDV_IspModuleInit(0);\n  if (iVar1 == 0) {\n    uVar3 = 0;\n    do {\n      uVar2 = uVar3 + 1;\n      iVar1 = CarDV_SclModuleInit(uVar3);\n      if (iVar1 != 0) {\n        printf(\"(%s %d)exec func fail, err:%x\\n\",\"CarDV_VideoPipeInit\",0x5c,iVar1);\n        return iVar1;\n      }\n      uVar3 = uVar2;\n    } while (uVar2 != 4);\n    iVar1 = CarDV_DispModuleInit();\n    if (iVar1 != 0) {\n      printf(\"(%s %d)exec func fail, err:%x\\n\",\"CarDV_VideoPipeInit\",0x68,iVar1);\n    }\n  }\n  else {\n    printf(\"(%s %d)exec func fail, err:%x\\n\",\"CarDV_VideoPipeInit\",0x50,iVar1);\n  }\n  return iVar1;\n}\n\n",
+  "signature": "int CarDV_VideoPipeInit(void);",
+  "error": null,
+  "callees": null,
+  "referenced_strings": null,
+  "xrefs": null
+}

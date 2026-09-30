@@ -1,0 +1,23 @@
+# Large or generated files stay out of git (kept on disk).
+*.bin
+*.tar.gz
+*.tar.xz
+/extracted/
+/live_system/
+/ghidra/
+/third_party/
+/logs/
+/REC_*
+/TEST_*
+# build outputs
+/src/camapp/camapp
+/src/playtest/playtest
+/src/fbtest/fbinfo
+/src/fbtest/fbtest
+/src/getexpo/getexpo
+/src/hello/hello
+/src/mitrace/mitrace.so
+*.o
+scratch/
+# the assistant's working notes: kept on disk, not published
+/archive/scratchpad/claude_memory/
